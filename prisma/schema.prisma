@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  password         String
+  role             Role
+  stripeAccountId  String?
+  stripeCustomerId String?
+  identityVerified Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  clientOrders     Order[]   @relation("ClientOrders")
+  vendorOrders     Order[]   @relation("VendorOrders")
+  deliveries       Order[]   @relation("Deliveries")
+  ratingsGiven     Rating[]  @relation("RatingsGiven")
+  ratingsReceived  Rating[]  @relation("RatingsReceived")
+}
+
+enum Role {
+  CLIENT
+  VENDOR
+  DELIVERY
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  service          String
+  amount           Float
+  status           OrderStatus
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  clientId         String
+  vendorId         String
+  deliveryPersonId String?
+  client           User     @relation("ClientOrders", fields: [clientId], references: [id])
+  vendor           User     @relation("VendorOrders", fields: [vendorId], references: [id])
+  deliveryPerson   User?    @relation("Deliveries", fields: [deliveryPersonId], references: [id])
+  ratings          Rating[]
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Rating {
+  id          String   @id @default(cuid())
+  rating      Int
+  review      String?
+  createdAt   DateTime @default(now())
+  orderId     String
+  ratedById   String
+  ratedUserId String
+  order       Order    @relation(fields: [orderId], references: [id])
+  ratedBy     User     @relation("RatingsGiven", fields: [ratedById], references: [id])
+  ratedUser   User     @relation("RatingsReceived", fields: [ratedUserId], references: [id])
+}
